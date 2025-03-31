@@ -156,9 +156,6 @@ public class TestOne {
             String message = "这是一条带有属性的测试消息 " + System.currentTimeMillis();
 
             // 2. 设置消息属性
-
-            // 消息属性-> 消息头
-
             AMQP.BasicProperties properties = new AMQP.BasicProperties.Builder()
                     .contentType("text/plain") // 内容类型
                     .contentEncoding("UTF-8")  // 内容编码
