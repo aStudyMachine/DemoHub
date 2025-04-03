@@ -1,6 +1,7 @@
 package cn.studymachine;
 
 
+import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
@@ -116,5 +117,114 @@ public class TestTwo {
     }
 
 
+    /**
+     * 消息过期后进入死信队列
+     */
+    @Test
+    public void testDeadLetterByMessageExpiration() throws IOException, TimeoutException, InterruptedException {
+        try (Connection connection = connectionFactory.newConnection();
+             Channel channel = connection.createChannel()) {
+
+            // 1. 准备消息内容
+            String message = "这是一条会过期的消息 " + System.currentTimeMillis();
+
+            // 2. 设置消息属性，包括TTL（过期时间）
+            AMQP.BasicProperties properties = new AMQP.BasicProperties.Builder()
+                    .expiration("5000")  // 设置过期时间为5秒
+                    .build();
+
+            // 3. 发送消息到交换机
+            channel.basicPublish(EXCHANGE_NAME, ROUTING_KEY, properties, message.getBytes());
+            System.out.println("✅ 带TTL的消息发送成功: " + message);
+
+            // 4. 等待消息过期（比TTL长一些）
+            Thread.sleep(6000);
+
+            // 5. 消费死信队列
+            channel.basicConsume(DEAD_LETTER_QUEUE_NAME, true, (consumerTag, delivery) -> {
+                String receivedMessage = new String(delivery.getBody());
+                System.out.println("💀 从死信队列收到过期消息: " + receivedMessage);
+            }, consumerTag -> {
+            });
+
+            // 让程序持续运行一段时间
+            Thread.sleep(5000);
+
+        }
+    }
+
+
+
+    // --------------------- 测试超过最大队列长度进入死信队列  ---------------------
+
+    /**
+     * 设置队列最大长度和死信交换机
+     */
+    @Test
+    public void setupQueueWithMaxLength() throws IOException, TimeoutException {
+        try (Connection connection = connectionFactory.newConnection();
+             Channel channel = connection.createChannel()) {
+
+            // 先删除可能已经存在的队列
+            channel.queueDelete(QUEUE_NAME);
+
+            // 声明死信交换机和队列（同上）
+            channel.exchangeDeclare(DEAD_LETTER_EXCHANGE_NAME, "direct", true);
+            channel.queueDeclare(DEAD_LETTER_QUEUE_NAME, true, false, false, null);
+            channel.queueBind(DEAD_LETTER_QUEUE_NAME, DEAD_LETTER_EXCHANGE_NAME, DEAD_LETTER_ROUTING_KEY);
+
+            // 声明普通交换机
+            channel.exchangeDeclare(EXCHANGE_NAME, "direct", true);
+
+            // 声明普通队列，设置最大长度和死信参数
+            Map<String, Object> arguments = new HashMap<>();
+            arguments.put("x-dead-letter-exchange", DEAD_LETTER_EXCHANGE_NAME);
+            arguments.put("x-dead-letter-routing-key", DEAD_LETTER_ROUTING_KEY);
+            arguments.put("x-max-length", 3);  // 设置队列最大长度为3
+
+            channel.queueDeclare(QUEUE_NAME, true, false, false, arguments);
+            channel.queueBind(QUEUE_NAME, EXCHANGE_NAME, ROUTING_KEY);
+
+            System.out.println("✅ 创建了最大长度为3的队列及死信结构");
+        }
+    }
+
+    @Test
+    public void testDeadLetterByMaxLength() throws IOException, TimeoutException, InterruptedException {
+        try (Connection connection = connectionFactory.newConnection();
+             Channel channel = connection.createChannel()) {
+
+            // 发送5条消息，超过队列最大长度
+            for (int i = 1; i <= 5; i++) {
+                String message = "消息 #" + i + " - " + System.currentTimeMillis();
+                channel.basicPublish(EXCHANGE_NAME, ROUTING_KEY, null, message.getBytes());
+                System.out.println("📤 发送消息: " + message);
+            }
+
+            System.out.println("✅ 发送了5条消息到最大长度为3的队列");
+
+            // 等待一会儿，让消息传递到死信队列
+            Thread.sleep(1000);
+
+            // 从普通队列消费消息
+            System.out.println("🔍 查看普通队列中的消息:");
+            channel.basicConsume(QUEUE_NAME, true, (consumerTag, delivery) -> {
+                String receivedMessage = new String(delivery.getBody());
+                System.out.println("📩 从普通队列收到: " + receivedMessage);
+            }, consumerTag -> {
+            });
+
+            // 从死信队列消费消息
+            System.out.println("🔍 查看死信队列中的消息:");
+            channel.basicConsume(DEAD_LETTER_QUEUE_NAME, true, (consumerTag, delivery) -> {
+                String receivedMessage = new String(delivery.getBody());
+                System.out.println("💀 从死信队列收到: " + receivedMessage);
+            }, consumerTag -> {
+            });
+
+            // 让程序持续运行一段时间
+            Thread.sleep(5000);
+        }
+    }
 
 }
