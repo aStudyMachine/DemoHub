@@ -93,7 +93,7 @@ public class TestOne {
         Channel channel = connection.createChannel();
 
         // 2. 设置消费者预取消息的数量为1，即一次只处理一条消息
-        channel.basicQos(1);
+        channel.basicQos(1, 1, false);
 
         System.out.println("✅ 等待接收消息...");
 
@@ -112,8 +112,10 @@ public class TestOne {
             String exchange = delivery.getEnvelope().getExchange();
             String routingKey = delivery.getEnvelope().getRoutingKey();
 
-            System.out.println("📩 收到消息: " + receivedMessage);
-            System.out.println("📝 消息详情 - 交换机: " + exchange + ", 路由键: " + routingKey);
+            System.out.println("📩 收到消息, deliveryTag: " + deliveryTag);
+            System.out.println("📩 消息内容: " + receivedMessage);
+            System.out.println("📝 消息-交换机: " + exchange + ", 路由键: " + routingKey);
+
 
             try {
                 // 模拟消息处理
@@ -132,8 +134,13 @@ public class TestOne {
                 // 参数1: 投递标签
                 // 参数2: 是否批量拒绝，false表示只拒绝当前消息
                 // 参数3: 是否重新入队，true表示将消息重新放回队列，false表示丢弃消息
-                channel.basicReject(deliveryTag, true);
+                channel.basicNack(deliveryTag, false, true); // 拒绝消息并重新入队
+
+                // 或者直接拒绝消息并重新入队
+                // channel.basicReject(deliveryTag, true);
+
             }
+
         }, consumerTag -> {
             // 消费者取消回调函数
             System.out.println("⚠️ 消费者被取消: " + consumerTag);
