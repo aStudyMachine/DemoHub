@@ -25,7 +25,8 @@ public class RabbitmqConfig {
 
 
     /**
-     * * RabbitMQ 连接工厂
+     * RabbitMQ 连接工厂 【原生 rabbit mq sdk】
+     * <p>
      *
      * @return connection factory
      */
@@ -39,4 +40,7 @@ public class RabbitmqConfig {
         factory.setPassword("guest");     // 默认密码
         return factory;
     }
+
+
+
 }

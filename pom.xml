@@ -19,7 +19,9 @@
     <modules>
         <module>easy-es-demo</module>
         <module>rabbitmq-demo</module>
+        <module>rabbitmq-spring-demo</module>
     </modules>
+
 
     <dependencyManagement>
         <!-- https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-parent -->
