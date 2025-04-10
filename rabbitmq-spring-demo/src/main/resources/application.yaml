@@ -1,0 +1,12 @@
+spring:
+  rabbitmq:
+    host: localhost # RabbitMQ 服务器地址
+    port: 5672
+    username: guest # RabbitMQ username
+    password: guest # RabbitMQ password
+    virtual-host: /  # RabbitMQ virtual host
+    listener:
+      simple: # RabbitMQ 消息监听器配置
+        retry:
+          enabled: true # 是否开启重试
+          max-attempts: 3 # 最大重试次数
