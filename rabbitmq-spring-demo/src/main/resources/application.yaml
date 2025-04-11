@@ -5,6 +5,9 @@ spring:
     username: guest # RabbitMQ username
     password: guest # RabbitMQ password
     virtual-host: /  # RabbitMQ virtual host
+    publisher-confirm-type: correlated # 发布确认类型
+    publisher-returns: true # 是否开启发布返回
+
     listener:
       simple: # RabbitMQ 消息监听器配置
         retry:
