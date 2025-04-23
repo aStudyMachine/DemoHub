@@ -34,9 +34,13 @@ public class RabbitmqConfig {
         // 发布确认回调
         rabbitTemplate.setConfirmCallback((correlationData, ack, cause) -> {
             if (ack) {
-                log.info("消息发送成功: {}", correlationData);
+                log.info("消息发送成功: {}  cause: {}",
+                        correlationData != null ? correlationData.getId() : null, cause);
             } else {
-                log.error("消息发送失败: {}, 原因: {}", correlationData, cause);
+                if (correlationData != null) {
+                    log.error("消息发送失败:  correlationData.id: {}, correlationData.return:{} cause: {}",
+                            correlationData.getId(), correlationData.getReturned(), cause);
+                }
             }
         });
 
