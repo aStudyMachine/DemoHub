@@ -31,10 +31,14 @@ public class RabbitmqConfig {
     @Bean
     public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory) {
         RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
+
+
+        // --------------------- 消息确认机制 ---------------------
+        rabbitTemplate.setMandatory(true); // 设置为true，开启消息确认机制
         // 发布确认回调
         rabbitTemplate.setConfirmCallback((correlationData, ack, cause) -> {
             if (ack) {
-                log.info("消息发送成功: {}  cause: {}",
+                log.info("消息发送成功: correlationData.getId -> {}  cause -> {}",
                         correlationData != null ? correlationData.getId() : null, cause);
             } else {
                 if (correlationData != null) {
@@ -44,6 +48,8 @@ public class RabbitmqConfig {
             }
         });
 
+
+        // --------------------- 消息无法被路由 -> 消息返回 ---------------------
         // // 旧版消息返回回调
         // rabbitTemplate.setReturnCallback((message, replyCode, replyText, exchange, routingKey) -> {
         //      log.error("消息未被路由到队列: {}, 回复码: {}, 回复文本: {}, 交换机: {}, 路由键: {}",
